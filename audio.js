@@ -1,0 +1,9 @@
+// Local procedural audio: no samples, requests, tracking or external assets.
+export class SeaAudio {
+ constructor(){this.ctx=null;this.enabled=false;this.master=null;}
+ async enable(){if(!this.ctx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;const c=this.ctx=new AC();this.master=c.createGain();this.master.gain.value=0;this.master.connect(c.destination);const buffer=c.createBuffer(1,c.sampleRate*3,c.sampleRate),data=buffer.getChannelData(0);let last=0;for(let i=0;i<data.length;i++){last=(last+Math.random()*.04-.02)/1.02;data[i]=last*3}const noise=c.createBufferSource();noise.buffer=buffer;noise.loop=true;const filter=c.createBiquadFilter();filter.type='lowpass';filter.frequency.value=320;const gain=c.createGain();gain.gain.value=.18;noise.connect(filter).connect(gain).connect(this.master);noise.start();for(const hz of [110,164.81,220]){const o=c.createOscillator(),g=c.createGain();o.frequency.value=hz;g.gain.value=.018;o.connect(g).connect(this.master);o.start()}}await this.ctx.resume();this.enabled=true;this.master.gain.setTargetAtTime(.6,this.ctx.currentTime,.3);return true;}
+ mute(){this.enabled=false;if(this.ctx)this.master.gain.setTargetAtTime(0,this.ctx.currentTime,.08)}
+ pause(){if(this.ctx)this.master.gain.setTargetAtTime(0,this.ctx.currentTime,.15)}
+ resume(){if(this.enabled&&this.ctx){this.ctx.resume();this.master.gain.setTargetAtTime(.6,this.ctx.currentTime,.2)}}
+ chime(win=false){if(!this.enabled||!this.ctx)return;const c=this.ctx;for(const [i,hz] of (win?[523.25,659.25,783.99,1046.5]:[659.25,987.77]).entries()){const o=c.createOscillator(),g=c.createGain(),t=c.currentTime+i*.13;o.frequency.value=hz;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.1,t+.02);g.gain.exponentialRampToValueAtTime(.001,t+.8);o.connect(g).connect(this.master);o.start(t);o.stop(t+.85)}}
+}
